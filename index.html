@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Renewable AI Coordinator</title>
+
+  <style>
+    :root {
+      --bg: #07111f;
+      --panel: #101d2e;
+      --panel-light: #17263a;
+      --text: #f4f7fb;
+      --muted: #9cafc5;
+      --green: #35d07f;
+      --blue: #45a7ff;
+      --yellow: #ffc857;
+      --red: #ff647c;
+      --border: rgba(255, 255, 255, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top right, #12335a 0, transparent 35%),
+        var(--bg);
+      font-family: Inter, Arial, sans-serif;
+    }
+
+    .container {
+      width: min(1400px, 94%);
+      margin: auto;
+      padding: 28px 0 50px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+      gap: 20px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: clamp(24px, 4vw, 38px);
+    }
+
+    header p {
+      color: var(--muted);
+      margin: 7px 0 0;
+    }
+
+    .live-status {
+      padding: 10px 16px;
+      border: 1px solid rgba(53, 208, 127, 0.35);
+      border-radius: 999px;
+      color: var(--green);
+      background: rgba(53, 208, 127, 0.08);
+      white-space: nowrap;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .account-email {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .logout-button {
+      padding: 9px 12px;
+      background: transparent;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      margin-right: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 12px var(--green);
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      background: var(--panel-light);
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    button:hover { border-color: var(--blue); }
+    button.primary { background: #1677c8; }
+
+    .card, .panel {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: rgba(16, 29, 46, 0.88);
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.22);
+    }
+
+    .card {
+      padding: 20px;
+    }
+
+    .card-label {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .card-value {
+      margin-top: 10px;
+      font-size: 30px;
+      font-weight: 700;
+    }
+
+    .green { color: var(--green); }
+    .blue { color: var(--blue); }
+    .yellow { color: var(--yellow); }
+
+    .two-column {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .panel {
+      padding: 22px;
+      overflow: hidden;
+    }
+
+    .panel h2 {
+      margin: 0 0 18px;
+      font-size: 19px;
+    }
+
+    .battery-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .battery-track {
+      height: 18px;
+      margin: 17px 0;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #25364c;
+    }
+
+    .battery-level {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--green), #9effbe);
+      transition: width 0.5s ease;
+    }
+
+    .battery-details {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .decision-box {
+      padding: 16px;
+      border-left: 4px solid var(--green);
+      border-radius: 12px;
+      background: var(--panel-light);
+    }
+
+    .decision-action {
+      margin-bottom: 7px;
+      color: var(--green);
+      font-size: 21px;
+      font-weight: 700;
+    }
+
+    .decision-reason {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .forecast {
+      display: flex;
+      align-items: end;
+      height: 190px;
+      gap: 9px;
+      padding-top: 20px;
+      overflow-x: auto;
+    }
+
+    .forecast-item {
+      display: flex;
+      min-width: 42px;
+      height: 100%;
+      flex: 1;
+      flex-direction: column;
+      justify-content: end;
+      align-items: center;
+    }
+
+    .forecast-value {
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 11px;
+    .forecast-bar {
+      width: 70%;
+      min-height: 4px;
+      border-radius: 7px 7px 2px 2px;
+      background: linear-gradient(180deg, var(--green), #178c58);
+    }
+
+    .forecast-time {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 10px;
+      white-space: nowrap;
+    }
+
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 14px 12px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      font-size: 14px;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: rgba(69, 167, 255, 0.12);
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .critical {
+      color: var(--red);
+      background: rgba(255, 100, 124, 0.12);
+    }
+
+    .medium {
+      color: var(--yellow);
+      background: rgba(255, 200, 87, 0.12);
+    }
+
+    .low {
+      color: var(--green);
+      background: rgba(53, 208, 127, 0.12);
+    }
+
+    .footer-status {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: right;
+    }
+
+    @media (max-width: 900px) {
+      .cards {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .two-column {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 520px) {
+      header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .cards {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>Renewable AI Coordinator</h1>
+        <p>Real-time energy scheduling and explainable decisions</p>
+      </div>
+
+      <div class="header-actions">
+        <span class="account-email" id="accountEmail"></span>
+        <div class="live-status">
+          <span class="dot"></span>
+          <span id="connectionStatus">Connecting</span>
+        </div>
+        <button class="logout-button" type="button" onclick="logout()">Log out</button>
+      </div>
+    </header>
+
+    <section class="controls" aria-label="Simulation controls">
+      <button class="primary" onclick="runAction('/api/coordinate')">Apply AI plan</button>
+      <button onclick="runAction('/api/demo/solar-drop')">Solar drop</button>
+      <button onclick="runAction('/api/demo/solar-peak')">Solar peak</button>
+      <button onclick="runAction('/api/demo/battery-low')">Low battery</button>
+      <button onclick="runAction('/api/demo/normal')">Normal</button>
+      <button onclick="runAction('/api/reset')">Reset</button>
+    </section>
+
+    <section class="cards">
+      <div class="card">
+        <div class="card-label">Renewable generation</div>
+        <div class="card-value green" id="renewable">-- kW</div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">Current load</div>
+        <div class="card-value blue" id="load">-- kW</div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">Grid usage</div>
+        <div class="card-value yellow" id="grid">-- kW</div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">Grid price</div>
+        <div class="card-value" id="price">--</div>
+      </div>
+    </section>
+
+    <section class="two-column">
+      <div class="panel">
+        <div class="battery-header">
+          <h2>Battery status</h2>
+          <strong id="batteryPercent">--%</strong>
+        </div>
+
+        <div class="battery-track">
+          <div class="battery-level" id="batteryLevel"></div>
+        </div>
+
+        <div class="battery-details">
+          <span id="batteryHealth">Health: --</span>
+          <span id="batteryTemp">Temperature: --</span>
+          <span id="batteryStatus">Status: --</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Battery decision</h2>
+
+        <div class="decision-box">
+          <div class="decision-action" id="batteryAction">Waiting</div>
+          <div class="decision-reason" id="batteryReason">
+            Waiting for decision-engine data.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-bottom:20px">
+      <h2>Renewable forecast</h2>
+      <div class="forecast" id="forecastChart"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Workload decisions</h2>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Workload</th>
+              <th>Priority</th>
+              <th>Power</th>
+              <th>Status</th>
+              <th>Decision</th>
+              <th>Energy source</th>
+              <th>Schedule</th>
+            </tr>
+          </thead>
+          <tbody id="workloadRows"></tbody>
+        </table>
+      </div>
+
+      <div class="footer-status" id="lastUpdated">
+        Waiting for data
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const escapeHtml = value => String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+
+    const formatNumber = value =>
+      Number(value ?? 0).toFixed(2);
+
+    const formatTime = value => {
+      if (!value) return "—";
+
+      return new Date(value).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    };
+
+    function priorityClass(priority) {
+      return String(priority || "").toLowerCase();
+    }
+
+    function renderForecast(points) {
+      const chart = document.getElementById("forecastChart");
+      chart.innerHTML = "";
+
+      const maximum = Math.max(
+        ...points.map(point => Number(point.renewable_kw)),
+        1
+      );
+
+      points.forEach(point => {
+        const height = Math.max(
+          (Number(point.renewable_kw) / maximum) * 130,
+          4
+        );
+
+        const item = document.createElement("div");
+        item.className = "forecast-item";
+
+        item.innerHTML = `
+          <div class="forecast-value">
+            ${formatNumber(point.renewable_kw)}
+          </div>
+          <div class="forecast-bar"
+               style="height:${height}px"></div>
+          <div class="forecast-time">
+            ${formatTime(point.timestamp)}
+          </div>
+        `;
+
+        chart.appendChild(item);
+      });
+    }
+
+    function renderWorkloads(workloads, decisions) {
+      const rows = document.getElementById("workloadRows");
+      rows.innerHTML = "";
+
+      const decisionMap = Object.fromEntries(
+        decisions.map(item => [item.job_id, item])
+      );
+
+      workloads.forEach(job => {
+        const decision = decisionMap[job.id] || {};
+
+        const schedule =
+          decision.scheduled_start
+            ? `${formatTime(decision.scheduled_start)}
+               – ${formatTime(decision.scheduled_finish)}`
+            : "—";
+
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+          <td>
+            <strong>${escapeHtml(job.name)}</strong><br>
+            <small>${escapeHtml(job.id)}</small>
+          </td>
+          <td>
+            <span class="badge ${priorityClass(job.priority)}">
+              ${escapeHtml(job.priority)}
+            </span>
+          </td>
+          <td>${formatNumber(job.power_kw)} kW</td>
+          <td>${escapeHtml(job.status)}</td>
+          <td>
+            <strong>${escapeHtml(decision.decision || "—")}</strong><br>
+            <small>${escapeHtml(decision.reason || "")}</small>
+          </td>
+          <td>${escapeHtml(decision.energy_source || "—")}</td>
+          <td>${schedule}</td>
+        `;
+
+        rows.appendChild(row);
+      });
+    }
+
+    async function runAction(path) {
+      const status = document.getElementById("lastUpdated");
+      status.textContent = "Applying action…";
+
+      try {
+        const response = await fetch(path, { method: "POST" });
+        if (response.status === 401) return window.location.assign("/login");
+        if (!response.ok) throw new Error("Action failed");
+        await refreshDashboard();
+      } catch (error) {
+        status.textContent = `Error: ${error.message}`;
+      }
+    }
+
+    async function refreshDashboard() {
+      try {
+        const [stateResponse, decisionResponse] =
+          await Promise.all([
+            fetch("/api/state", { cache: "no-store" }),
+            fetch("/api/decisions", { cache: "no-store" })
+          ]);
+
+        if (stateResponse.status === 401 || decisionResponse.status === 401) {
+          return window.location.assign("/login");
+        }
+        if (!stateResponse.ok || !decisionResponse.ok) {
+          throw new Error("API request failed");
+        }
+
+        const state = await stateResponse.json();
+        const decisions = await decisionResponse.json();
+
+        document.getElementById("renewable").textContent =
+          `${formatNumber(state.energy.renewable_kw)} kW`;
+
+        document.getElementById("load").textContent =
+          `${formatNumber(state.energy.load_kw)} kW`;
+
+        document.getElementById("grid").textContent =
+          `${formatNumber(state.energy.grid_kw)} kW`;
+
+        document.getElementById("price").textContent =
+          `₹${formatNumber(state.energy.grid_price_per_kwh)}/kWh`;
+
+        const soc = Number(state.battery.soc_percent);
+
+        document.getElementById("batteryPercent").textContent =
+          `${formatNumber(soc)}%`;
+
+        document.getElementById("batteryLevel").style.width =
+          `${Math.min(Math.max(soc, 0), 100)}%`;
+
+        document.getElementById("batteryHealth").textContent =
+          `Health: ${formatNumber(state.battery.soh_percent)}%`;
+
+        document.getElementById("batteryTemp").textContent =
+          `Temperature: ${formatNumber(state.battery.temperature_c)}°C`;
+
+        document.getElementById("batteryStatus").textContent =
+          `Status: ${state.battery.status}`;
+
+        const batteryDecision = decisions.battery_decision;
+
+        document.getElementById("batteryAction").textContent =
+          `${batteryDecision.action} ·
+           ${formatNumber(batteryDecision.power_kw)} kW`;
+
+        document.getElementById("batteryReason").textContent =
+          batteryDecision.reason;
+
+        renderForecast(state.forecast.points);
+
+        renderWorkloads(
+          state.workloads,
+          decisions.workload_decisions
+        );
+
+        document.getElementById("connectionStatus").textContent =
+          "Live";
+
+        document.getElementById("lastUpdated").textContent =
+          `Last updated: ${new Date().toLocaleTimeString()}`;
+      } catch (error) {
+        document.getElementById("connectionStatus").textContent =
+          "Disconnected";
+
+        document.getElementById("lastUpdated").textContent =
+          `Error: ${error.message}`;
+      }
+    }
+
+    async function loadCurrentUser() {
+      const response = await fetch("/api/auth/me", { cache: "no-store" });
+      if (!response.ok) return window.location.assign("/login");
+      const user = await response.json();
+      document.getElementById("accountEmail").textContent = user.email;
+    }
+
+    async function logout() {
+      await fetch("/api/auth/logout", { method: "POST" });
+      window.location.assign("/login");
+    }
+
+    loadCurrentUser();
+    refreshDashboard();
+    setInterval(refreshDashboard, 5000);
+  </script>
+</body>
+</html>

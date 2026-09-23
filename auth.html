@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in · Renewable AI Coordinator</title>
+  <style>
+    :root {
+      --bg: #07111f; --panel: #101d2e; --text: #f4f7fb;
+      --muted: #9cafc5; --green: #35d07f; --blue: #45a7ff;
+      --red: #ff647c; --border: rgba(255,255,255,.1);
+    }
+    * { box-sizing: border-box; }
+    body {
+      min-height: 100vh; margin: 0; display: grid; place-items: center;
+      color: var(--text); font-family: Inter, Arial, sans-serif;
+      background: radial-gradient(circle at top right, #12335a 0, transparent 38%), var(--bg);
+    }
+    .layout {
+      width: min(980px, 92%); display: grid; grid-template-columns: 1.05fr .95fr;
+      overflow: hidden; border: 1px solid var(--border); border-radius: 24px;
+      background: rgba(16,29,46,.94); box-shadow: 0 25px 80px rgba(0,0,0,.35);
+    }
+    .intro { padding: 54px; background: linear-gradient(145deg, rgba(69,167,255,.16), rgba(53,208,127,.08)); }
+    .logo { color: var(--green); font-weight: 800; letter-spacing: .04em; }
+    h1 { margin: 22px 0 14px; font-size: clamp(30px, 4vw, 48px); line-height: 1.08; }
+    .intro p { color: var(--muted); line-height: 1.7; }
+    .feature { margin-top: 28px; display: grid; gap: 13px; color: #d8e5f3; }
+    .feature span::before { content: "✓"; color: var(--green); margin-right: 10px; font-weight: 800; }
+    .auth { padding: 46px; }
+    .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 30px; }
+    .tab, button {
+      border: 1px solid var(--border); border-radius: 10px; padding: 11px 15px;
+      color: var(--text); background: #17263a; cursor: pointer; font-weight: 700;
+    }
+    .tab.active { color: var(--blue); border-color: var(--blue); background: rgba(69,167,255,.1); }
+    label { display: block; margin: 17px 0 7px; color: #dbe7f5; font-size: 14px; }
+    input {
+      width: 100%; padding: 13px 14px; color: var(--text); background: #0a1625;
+      border: 1px solid var(--border); border-radius: 10px; outline: none;
+    }
+    input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(69,167,255,.1); }
+    button.primary { width: 100%; margin-top: 22px; background: #1677c8; border-color: #298cdd; }
+    button:disabled { opacity: .6; cursor: wait; }
+    .message { min-height: 22px; margin-top: 15px; color: var(--muted); font-size: 14px; line-height: 1.45; }
+    .message.error { color: var(--red); }
+    .message.success { color: var(--green); }
+    .otp { text-align: center; }
+    .otp input { text-align: center; font-size: 27px; letter-spacing: 9px; font-weight: 800; }
+    .hidden { display: none; }
+    .back { margin-top: 14px; border: 0; background: transparent; color: var(--muted); }
+    .security { margin-top: 22px; color: var(--muted); font-size: 12px; text-align: center; }
+    @media (max-width: 760px) {
+      .layout { grid-template-columns: 1fr; }
+      .intro { padding: 32px; }
+      .feature { display: none; }
+      .auth { padding: 32px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="layout">
+    <section class="intro">
+      <div class="logo">RENEWABLE AI</div>
+      <h1>Smarter energy decisions, securely delivered.</h1>
+      <p>Access the live renewable-energy simulator, explainable decision engine, and workload coordinator.</p>
+      <div class="feature">
+        <span>Email OTP verification</span>
+        <span>Explainable workload scheduling</span>
+        <span>Live battery and renewable insights</span>
+      </div>
+    </section>
+
+    <section class="auth">
+      <div id="credentialsStep">
+        <div class="tabs">
+          <button class="tab active" id="loginTab" type="button">Sign in</button>
+          <button class="tab" id="registerTab" type="button">Create account</button>
+        </div>
+        <h2 id="formTitle">Welcome back</h2>
+        <p id="formSubtitle" style="color:var(--muted)">Enter your registered email and password.</p>
+        <form id="credentialsForm">
+          <label for="email">Email address</label>
+          <input id="email" type="email" autocomplete="email" required placeholder="you@example.com">
+          <label for="password">Password</label>
+          <input id="password" type="password" autocomplete="current-password" minlength="8" maxlength="128" required placeholder="Minimum 8 characters">
+          <button class="primary" id="submitButton" type="submit">Continue</button>
+        </form>
+        <div class="message" id="credentialsMessage" aria-live="polite"></div>
+      </div>
+
+      <div id="otpStep" class="otp hidden">
+        <h2>Check your email</h2>
+        <p style="color:var(--muted)">We sent a six-digit code to <strong id="otpEmail"></strong>.</p>
+        <form id="otpForm">
+          <label for="otp">Verification code</label>
+          <input id="otp" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required placeholder="000000">
+          <button class="primary" id="verifyButton" type="submit">Verify and continue</button>
+        </form>
+        <div class="message" id="otpMessage" aria-live="polite"></div>
+        <button class="back" id="backButton" type="button">← Use a different email</button>
+      </div>
+      <div class="security">Protected by password hashing, expiring OTPs, and secure session cookies.</div>
+    </section>
+  </main>
+
+  <script>
+    let mode = "login";
+    let challengeId = null;
+    const credentialsStep = document.getElementById("credentialsStep");
+    const otpStep = document.getElementById("otpStep");
+
+    function setMode(nextMode) {
+      mode = nextMode;
+      document.getElementById("loginTab").classList.toggle("active", mode === "login");
+      document.getElementById("registerTab").classList.toggle("active", mode === "register");
+      document.getElementById("formTitle").textContent = mode === "login" ? "Welcome back" : "Create your account";
+      document.getElementById("formSubtitle").textContent = mode === "login"
+        ? "Enter your registered email and password."
+        : "Register your email, then verify it with an OTP.";
+      document.getElementById("password").autocomplete = mode === "login" ? "current-password" : "new-password";
+      document.getElementById("credentialsMessage").textContent = "";
+    }
+
+    function showMessage(element, text, type = "") {
+      element.textContent = text;
+      element.className = `message ${type}`;
+    }
+
+    async function readResponse(response) {
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.detail || "The request could not be completed.");
+      return data;
+    }
+
+    document.getElementById("loginTab").onclick = () => setMode("login");
+    document.getElementById("registerTab").onclick = () => setMode("register");
+
+    document.getElementById("credentialsForm").addEventListener("submit", async event => {
+      event.preventDefault();
+      const button = document.getElementById("submitButton");
+      const message = document.getElementById("credentialsMessage");
+      const email = document.getElementById("email").value.trim();
+      button.disabled = true;
+      showMessage(message, "Sending verification code…");
+      try {
+        const response = await fetch(`/api/auth/${mode}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password: document.getElementById("password").value })
+        });
+        const data = await readResponse(response);
+        challengeId = data.challenge_id;
+        document.getElementById("otpEmail").textContent = email;
+        credentialsStep.classList.add("hidden");
+        otpStep.classList.remove("hidden");
+        document.getElementById("otp").focus();
+      } catch (error) {
+        showMessage(message, error.message, "error");
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    document.getElementById("otpForm").addEventListener("submit", async event => {
+      event.preventDefault();
+      const button = document.getElementById("verifyButton");
+      const message = document.getElementById("otpMessage");
+      button.disabled = true;
+      showMessage(message, "Verifying…");
+      try {
+        const response = await fetch("/api/auth/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ challenge_id: challengeId, otp: document.getElementById("otp").value })
+        });
+        await readResponse(response);
+        showMessage(message, "Verified. Opening dashboard…", "success");
+        window.location.assign("/dashboard");
+      } catch (error) {
+        showMessage(message, error.message, "error");
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    document.getElementById("backButton").onclick = () => {
+      challengeId = null;
+      document.getElementById("otp").value = "";
+      showMessage(document.getElementById("otpMessage"), "");
+      otpStep.classList.add("hidden");
+      credentialsStep.classList.remove("hidden");
+    };
+  </script>
+</body>
+</html>
